@@ -2,7 +2,7 @@ import {AddTodolistActionType, RemoveTodolistActionType, SetTodolistsActionType}
 import {TaskPriorities, TaskStatuses, TaskType, todolistsAPI, UpdateTaskModelType} from '../../api/todolists-api'
 import {Dispatch} from 'redux'
 import {AppRootStateType} from '../../app/store'
-import {ActionsAppType, setAppStatus} from "../../app/app-reducer";
+import {ActionsAppType, RequestStatusType, setAppStatus} from "../../app/app-reducer";
 import {handleServerAppError, handleServerNetworkError} from "../../utils/error-utils";
 
 const initialState: TasksStateType = {}
@@ -11,8 +11,14 @@ export const tasksReducer = (state: TasksStateType = initialState, action: Actio
     switch (action.type) {
         case 'REMOVE-TASK':
             return {...state, [action.todolistId]: state[action.todolistId].filter(t => t.id !== action.taskId)}
-        case 'ADD-TASK':
-            return {...state, [action.task.todoListId]: [action.task, ...state[action.task.todoListId]]}
+        case 'ADD-TASK': {
+            const copyState = {...state, [action.task.todoListId]: [action.task, ...state[action.task.todoListId]]}
+            const tasksArray: Array<TaskType> = copyState[action.task.todoListId].map(t => ({
+                ...t,
+                entityStatus: 'idle'
+            }))
+            return {...copyState, [action.task.todoListId]: tasksArray}
+        }
         case 'UPDATE-TASK':
             return {
                 ...state,
@@ -32,8 +38,14 @@ export const tasksReducer = (state: TasksStateType = initialState, action: Actio
             })
             return copyState
         }
-        case 'SET-TASKS':
-            return {...state, [action.todolistId]: action.tasks}
+        case 'SET-TASKS': {
+            const copyState = {...state, [action.todolistId]: action.tasks}
+            const tasksArray: Array<TaskType> = copyState[action.todolistId].map(t => ({...t, entityStatus: 'idle'}))
+            return {...copyState, [action.todolistId]: tasksArray}
+        }
+        case 'CHANGE-TASK-ENTITY-STATUS': {
+            return {...state, [action.todolistId]: state[action.todolistId].map(t => t.id === action.taskId ? ({...t, entityStatus: action.status}) : t)}
+        }
         default:
             return state
     }
@@ -48,6 +60,8 @@ export const updateTaskAC = (taskId: string, model: UpdateDomainTaskModelType, t
     ({type: 'UPDATE-TASK', model, todolistId, taskId} as const)
 export const setTasksAC = (tasks: Array<TaskType>, todolistId: string) =>
     ({type: 'SET-TASKS', tasks, todolistId} as const)
+export const changeTaskEntityStatusAC = (todolistId: string, taskId: string, status: RequestStatusType) =>
+    ({type: 'CHANGE-TASK-ENTITY-STATUS', todolistId, taskId, status} as const)
 
 // thunks
 export const fetchTasksTC = (todolistId: string) => (dispatch: Dispatch<ActionsType>) => {
@@ -139,3 +153,4 @@ type ActionsType =
     | SetTodolistsActionType
     | ReturnType<typeof setTasksAC>
     | ActionsAppType
+    | ReturnType<typeof changeTaskEntityStatusAC>
