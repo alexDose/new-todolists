@@ -56,8 +56,7 @@ export const TodolistsList: React.FC = () => {
     }, [])
 
     const changeFilter = useCallback(function (value: FilterValuesType, todolistId: string) {
-        const action = changeTodolistFilterAC(todolistId, value)
-        dispatch(action)
+        dispatch(changeTodolistFilterAC({id: todolistId, filter: value}))
     }, [])
 
     const removeTodolist = useCallback(function (id: string) {
