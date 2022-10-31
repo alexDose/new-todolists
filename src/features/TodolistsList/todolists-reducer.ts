@@ -1,7 +1,7 @@
 import {todolistsAPI, TodolistType} from '../../api/todolists-api'
 import {Dispatch} from 'redux'
 import {RequestStatusType, setAppStatus} from "../../app/app-reducer";
-import {fetchTasksTC} from "./tasks-reducer";
+import {fetchTasks} from "./tasks-reducer";
 import {createSlice, PayloadAction} from "@reduxjs/toolkit";
 
 const initialState: Array<TodolistDomainType> = []
@@ -104,7 +104,7 @@ export const fetchTodolistsTC = () => {
             })
             .then(todos => {
                 todos.forEach(tl => {
-                    dispatch(fetchTasksTC(tl.id))
+                    dispatch(fetchTasks(tl.id))
                 })
             })
     }
