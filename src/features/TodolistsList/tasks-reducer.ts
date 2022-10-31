@@ -3,7 +3,6 @@ import {
     TaskStatuses,
     TaskType,
     todolistsAPI,
-    TodolistType,
     UpdateTaskModelType
 } from '../../api/todolists-api'
 import {Dispatch} from 'redux'
