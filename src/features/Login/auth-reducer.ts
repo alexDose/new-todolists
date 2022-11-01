@@ -5,13 +5,14 @@ import {clearTodosDataAC} from "../TodolistsList/todolists-reducer";
 import {createAsyncThunk, createSlice, PayloadAction} from "@reduxjs/toolkit";
 import {setAppStatus} from "../../app/app-reducer";
 
-export const loginTC = createAsyncThunk<{isLoggedIn: boolean}, LoginDataType, {rejectValue: {errors: Array<string>, fieldsErrors?: Array<FieldErrorType>}}>('auth/login', async (data, thunkAPI) => {
+export const loginTC = createAsyncThunk<undefined, LoginDataType, { rejectValue: { errors: Array<string>, fieldsErrors?: Array<FieldErrorType> } }>('auth/login', async (data, thunkAPI) => {
     thunkAPI.dispatch(setAppStatus({status: 'loading'}))
     const res = await authAPI.login(data)
     try {
         if (res.data.resultCode === 0) {
+            thunkAPI.dispatch(setAppStatus({status: 'succeeded'}))
             thunkAPI.dispatch(setIsLoggedInAC({value: true}))
-            return {isLoggedIn: true}
+            return
         } else {
             handleServerAppError(res.data, thunkAPI.dispatch)
             return thunkAPI.rejectWithValue({errors: res.data.messages, fieldsErrors: res.data.fieldsErrors})
@@ -21,6 +22,41 @@ export const loginTC = createAsyncThunk<{isLoggedIn: boolean}, LoginDataType, {r
         return thunkAPI.rejectWithValue({errors: [error.message], fieldsErrors: undefined})
     }
 })
+export const logoutTC = createAsyncThunk('auth/logout', async (data, thunkAPI) => {
+    thunkAPI.dispatch(setAppStatus({status: 'loading'}))
+    try {
+        const res = await authAPI.logout()
+        if (res.data.resultCode === 0) {
+            thunkAPI.dispatch(setAppStatus({status: 'succeeded'}))
+            thunkAPI.dispatch(clearTodosDataAC({}))
+        } else {
+            handleServerAppError(res.data, thunkAPI.dispatch)
+            return thunkAPI.rejectWithValue({})
+        }
+    } catch (error: any) {
+        handleServerAppError(error, thunkAPI.dispatch)
+        return thunkAPI.rejectWithValue({})
+    }
+})
+export const logoutTC_ = () => (dispatch: Dispatch) => {
+    dispatch(setAppStatus({status: 'loading'}))
+    authAPI.logout()
+        .then(res => {
+            if (res.data.resultCode === 0) {
+                dispatch(setIsLoggedInAC({value: false}))
+                dispatch(setAppStatus({status: 'succeeded'}))
+                dispatch(clearTodosDataAC({}))
+            } else {
+                handleServerAppError(res.data, dispatch)
+            }
+        })
+        .catch(error => {
+            handleServerAppError(error, dispatch)
+        })
+        .finally(() => {
+            dispatch(setAppStatus({status: 'idle'}))
+        })
+}
 
 const slice = createSlice({
     name: 'auth',
@@ -31,10 +67,12 @@ const slice = createSlice({
         }
     },
     extraReducers: (builder) => {
-        builder.addCase(loginTC.fulfilled, (state, action) => {
-                state.isLoggedIn = action.payload.isLoggedIn
-            }
-        )
+        builder.addCase(loginTC.fulfilled, (state) => {
+            state.isLoggedIn = true
+        })
+        builder.addCase(logoutTC.fulfilled, (state) => {
+            state.isLoggedIn = false
+        })
     }
 })
 
@@ -83,26 +121,6 @@ export const setIsLoggedInAC = (value: boolean) =>
 //             dispatch(setAppStatus({status: 'idle'}))
 //         })
 // }
-export const logoutTC = () => (dispatch: Dispatch) => {
-    dispatch(setAppStatus({status: 'loading'}))
-    authAPI.logout()
-        .then(res => {
-            if (res.data.resultCode === 0) {
-                dispatch(setIsLoggedInAC({value: false}))
-                dispatch(setAppStatus({status: 'succeeded'}))
-                dispatch(clearTodosDataAC({}))
-            } else {
-                handleServerAppError(res.data, dispatch)
-            }
-        })
-        .catch(error => {
-            handleServerAppError(error, dispatch)
-        })
-        .finally(() => {
-            dispatch(setAppStatus({status: 'idle'}))
-        })
-}
-
 /*
 // types
 type ActionsType = ReturnType<typeof setIsLoggedInAC> | ActionsAppType | ReturnType<typeof clearTodosDataAC>
